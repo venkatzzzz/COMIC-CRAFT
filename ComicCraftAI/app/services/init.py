@@ -1,0 +1,1 @@
+from .comic_service import generate_comic

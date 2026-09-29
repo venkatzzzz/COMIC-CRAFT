@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>ComicCraftAI - Comic Preview</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 25px;
+    font-family: Arial, sans-serif;
+    background: #eef2ff;
+    color: #222;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+h1 {
+    color: #172554;
+    margin-bottom: 8px;
+}
+
+header p {
+    color: #64748b;
+}
+
+.comic {
+    background: white;
+    padding: 22px;
+    border-radius: 18px;
+    box-shadow: 0 8px 30px #0002;
+}
+
+.panel {
+    margin-bottom: 35px;
+    border: 4px solid #111827;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 5px 5px #111827;
+    background: white;
+    break-inside: avoid;
+}
+
+.panel-title {
+    background: #2563eb;
+    color: white;
+    padding: 14px;
+    font-size: 21px;
+    font-weight: bold;
+}
+
+.panel-image {
+    width: 100%;
+    display: block;
+    height: auto;
+    background: #172554;
+}
+
+.content {
+    padding: 20px;
+}
+
+.label {
+    font-weight: bold;
+    color: #1e3a8a;
+    margin-top: 14px;
+    margin-bottom: 7px;
+}
+
+.text {
+    line-height: 1.6;
+}
+
+.narration {
+    background: #fef3c7;
+    border-left: 5px solid #f59e0b;
+    padding: 13px;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.dialogue {
+    margin-top: 10px;
+    background: white;
+    border: 3px solid #111827;
+    border-radius: 18px;
+    padding: 14px;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.speaker {
+    color: #dc2626;
+}
+
+.prompt {
+    background: #f1f5f9;
+    padding: 12px;
+    border-radius: 7px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.buttons {
+    text-align: center;
+    margin: 30px 0;
+}
+
+button,
+a {
+    display: inline-block;
+    padding: 13px 22px;
+    margin: 5px;
+    border: 0;
+    border-radius: 9px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.print {
+    background: #2563eb;
+    color: white;
+}
+
+.back {
+    background: #cbd5e1;
+    color: #172033;
+}
+
+.empty {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+}
+
+@media print {
+
+    body {
+        background: white;
+        padding: 0;
+    }
+
+    header {
+        margin-bottom: 15px;
+    }
+
+    .buttons {
+        display: none;
+    }
+
+    .comic {
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .panel {
+        box-shadow: none;
+        margin-bottom: 20px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .panel-image {
+        max-height: 650px;
+        object-fit: contain;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+<header>
+
+<h1 id="title">
+The Midnight Clock
+</h1>
+
+<p id="genre">
+Genre: Mystery
+</p>
+
+</header>
+
+
+<div
+class="comic"
+id="comic"
+>
+</div>
+
+
+<div class="buttons">
+
+<button
+class="print"
+onclick="exportComic()"
+>
+🖨️ Save / Export Comic as PDF
+</button>
+
+<a
+class="back"
+href="/"
+>
+← Create Another Comic
+</a>
+
+</div>
+
+
+</div>
+
+
+<script>
+
+
+function getText(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+    if (
+        typeof value === "object"
+    ) {
+
+        return (
+            value.text ||
+            value.dialogue ||
+            value.line ||
+            ""
+        );
+
+    }
+
+    return String(value);
+
+}
+
+
+function escapeHTML(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+function loadComic() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(
+                "comicData"
+            );
+
+        if (!saved) {
+
+            return null;
+
+        }
+
+        return JSON.parse(saved);
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Comic data error:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+function renderComic(data) {
+
+    const box =
+        document.getElementById(
+            "comic"
+        );
+
+
+    if (!data) {
+
+        box.innerHTML = `
+
+            <div class="empty">
+
+                <h2>
+                    No comic data found
+                </h2>
+
+                <p>
+                    Please go back and generate
+                    your comic again.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "title"
+    ).textContent = getText(
+
+        data.title ||
+        "The Midnight Clock"
+
+    );
+
+
+    document.getElementById(
+        "genre"
+    ).textContent =
+        "Genre: " +
+        getText(
+            data.genre ||
+            "Mystery"
+        );
+
+
+    const panels =
+        Array.isArray(data.panels)
+        ? data.panels
+        : [];
+
+
+    box.innerHTML = "";
+
+
+    for (
+        let index = 0;
+        index < 4;
+        index++
+    ) {
+
+        const panel =
+            panels[index] || {};
+
+
+        const title =
+            getText(
+                panel.title ||
+                "Panel " +
+                (index + 1)
+            );
+
+
+        const scene =
+            getText(
+                panel.scene ||
+                "The story continues."
+            );
+
+
+        const narration =
+            getText(
+                panel.narration ||
+                "The mystery continues."
+            );
+
+
+        const dialogue =
+            panel.dialogue || {};
+
+
+        let speaker = "Maya";
+
+        let dialogueText =
+            "Something strange is happening.";
+
+
+        if (
+            typeof dialogue === "object"
+        ) {
+
+            speaker =
+                getText(
+                    dialogue.speaker ||
+                    dialogue.character ||
+                    "Maya"
+                );
+
+
+            dialogueText =
+                getText(
+                    dialogue.text ||
+                    dialogue.dialogue ||
+                    "Something strange is happening."
+                );
+
+        }
+
+        else {
+
+            dialogueText =
+                getText(dialogue);
+
+        }
+
+
+        const imagePrompt =
+            getText(
+                panel.image_prompt ||
+                panel.imagePrompt ||
+                "Comic book artwork."
+            );
+
+
+        const imageNumber =
+            index + 1;
+
+
+        const imagePath =
+            `/static/panel${imageNumber}.jpeg`;
+
+
+        const panelHTML = `
+
+        <div class="panel">
+
+
+            <div class="panel-title">
+
+                Panel ${imageNumber}:
+                ${escapeHTML(title)}
+
+            </div>
+
+
+            <img
+
+                class="panel-image"
+
+                src="${imagePath}"
+
+                alt="Comic Panel ${imageNumber}"
+
+            >
+
+
+            <div class="content">
+
+
+                <div class="label">
+                    🎬 Scene
+                </div>
+
+                <div class="text">
+                    ${escapeHTML(scene)}
+                </div>
+
+
+                <div class="label">
+                    📖 Narration
+                </div>
+
+                <div class="narration">
+                    ${escapeHTML(narration)}
+                </div>
+
+
+                <div class="label">
+                    💬 Dialogue
+                </div>
+
+                <div class="dialogue">
+
+                    <span class="speaker">
+
+                        ${escapeHTML(speaker)}:
+
+                    </span>
+
+                    ${escapeHTML(dialogueText)}
+
+                </div>
+
+
+                <div class="label">
+                    🎨 Image Prompt
+                </div>
+
+                <div class="prompt">
+
+                    ${escapeHTML(imagePrompt)}
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+        `;
+
+
+        box.innerHTML += panelHTML;
+
+    }
+
+}
+
+
+/*
+    PDF EXPORT
+*/
+
+function exportComic() {
+
+    window.print();
+
+}
+
+
+/*
+    When the print/PDF window closes,
+    go to the success page.
+*/
+
+window.addEventListener(
+    "afterprint",
+    function() {
+
+        window.location.href =
+            "/export-success";
+
+    }
+);
+
+
+const comicData =
+    loadComic();
+
+
+renderComic(comicData);
+
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>ComicCraftAI</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 30px;
+    font-family: Arial, sans-serif;
+    background: #eef2ff;
+    color: #1e293b;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    color: #172554;
+}
+
+.subtitle {
+    text-align: center;
+    color: #64748b;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 18px;
+    box-shadow: 0 8px 30px #0002;
+}
+
+label {
+    display: block;
+    margin-top: 18px;
+    margin-bottom: 7px;
+    font-weight: bold;
+}
+
+textarea,
+input,
+select {
+    width: 100%;
+    padding: 13px;
+    border: 2px solid #cbd5e1;
+    border-radius: 9px;
+    font-size: 16px;
+}
+
+textarea {
+    min-height: 150px;
+}
+
+button {
+    width: 100%;
+    margin-top: 25px;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #2563eb;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:disabled {
+    background: #94a3b8;
+}
+
+#message {
+    margin-top: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.error {
+    color: #dc2626;
+}
+
+.success {
+    color: #16a34a;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+<h1>🎨 ComicCraftAI</h1>
+
+<p class="subtitle">
+Create your own comic using Ollama AI
+</p>
+
+
+<div class="card">
+
+<form id="comicForm">
+
+
+<label>
+Story Prompt
+</label>
+
+<textarea
+name="story_prompt"
+required
+>Every night at exactly midnight, the old clock tower rings thirteen times, even though it has been broken for twenty years. One evening, Maya decides to investigate. Inside the tower, she discovers a hidden room containing photographs of people from the town — including a photograph of herself taken tomorrow. Now she must solve the mystery before midnight comes again.</textarea>
+
+
+<label>
+Main Character Name
+</label>
+
+<input
+type="text"
+name="character_name"
+value="Maya"
+required
+>
+
+
+<label>
+Setting
+</label>
+
+<select name="setting">
+
+<option>Old Clock Tower</option>
+<option>City</option>
+<option>Castle</option>
+<option>Haunted House</option>
+
+</select>
+
+
+<label>
+Story Tone
+</label>
+
+<select name="tone">
+
+<option>Mystery</option>
+<option>Dramatic</option>
+<option>Adventure</option>
+<option>Funny</option>
+<option>Horror</option>
+
+</select>
+
+
+<label>
+Art Style
+</label>
+
+<select name="art_style">
+
+<option>Comic Book</option>
+<option>Manga</option>
+<option>Cartoon</option>
+<option>Graphic Novel</option>
+
+</select>
+
+
+<button
+id="generateButton"
+type="submit"
+>
+✨ Generate Comic
+</button>
+
+
+<div id="message"></div>
+
+</form>
+
+</div>
+
+</div>
+
+
+<script>
+
+const form =
+document.getElementById("comicForm");
+
+const button =
+document.getElementById("generateButton");
+
+const message =
+document.getElementById("message");
+
+
+form.addEventListener(
+"submit",
+async function(event) {
+
+    event.preventDefault();
+
+    button.disabled = true;
+
+    button.textContent =
+    "⏳ Generating Comic...";
+
+    message.className = "";
+
+    message.textContent =
+    "Ollama is creating your comic. Please wait...";
+
+
+    try {
+
+        const formData =
+        new FormData(form);
+
+
+        const response =
+        await fetch(
+            "/generate",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Server error: " +
+                response.status
+            );
+
+        }
+
+
+        const comic =
+        await response.json();
+
+
+        if (
+            !comic ||
+            !comic.panels ||
+            comic.panels.length === 0
+        ) {
+
+            throw new Error(
+                "No comic panels were returned."
+            );
+
+        }
+
+
+        localStorage.setItem(
+            "comicData",
+            JSON.stringify(comic)
+        );
+
+
+        message.className =
+        "success";
+
+        message.textContent =
+        "Comic generated successfully!";
+
+
+        setTimeout(
+            function() {
+
+                window.location.href =
+                "/comic-preview";
+
+            },
+            500
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        message.className =
+        "error";
+
+        message.textContent =
+        "Comic generate failed: " +
+        error.message;
+
+        button.disabled = false;
+
+        button.textContent =
+        "✨ Generate Comic";
+
+    }
+
+});
+
+</script>
+
+</body>
+
+</html>
